@@ -8,9 +8,38 @@
   </head>
   <body>
     <header>
-      <h1>Mergington High School</h1>
-      <h2>Extracurricular Activities</h2>
+      <div class="header-top">
+        <div>
+          <h1>Mergington High School</h1>
+          <h2>Extracurricular Activities</h2>
+        </div>
+        <div class="user-section">
+          <button id="user-icon" class="user-icon" title="Login">👤</button>
+        </div>
+      </div>
     </header>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Teacher Login</h3>
+          <button id="close-modal" class="close-btn">&times;</button>
+        </div>
+        <form id="login-form" class="modal-body">
+          <div class="form-group">
+            <label for="username">Username:</label>
+            <input type="text" id="username" required />
+          </div>
+          <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" required />
+          </div>
+          <button type="submit" class="btn-primary">Login</button>
+        </form>
+        <div id="login-message" class="login-message hidden"></div>
+      </div>
+    </div>
 
     <main>
       <section id="activities-container">
@@ -21,8 +50,8 @@
         </div>
       </section>
 
-      <section id="signup-container">
-        <h3>Sign Up for an Activity</h3>
+      <section id="signup-container" class="hidden">
+        <h3>Register a Student</h3>
         <form id="signup-form">
           <div class="form-group">
             <label for="email">Student Email:</label>
@@ -35,7 +64,7 @@
               <!-- Activity options will be loaded here -->
             </select>
           </div>
-          <button type="submit">Sign Up</button>
+          <button type="submit" class="btn-primary">Register Student</button>
         </form>
         <div id="message" class="hidden"></div>
       </section>

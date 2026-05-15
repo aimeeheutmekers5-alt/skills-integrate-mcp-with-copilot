@@ -2,7 +2,111 @@ document.addEventListener("DOMContentLoaded", () => {
   const activitiesList = document.getElementById("activities-list");
   const activitySelect = document.getElementById("activity");
   const signupForm = document.getElementById("signup-form");
+  const signupContainer = document.getElementById("signup-container");
   const messageDiv = document.getElementById("message");
+  const userIcon = document.getElementById("user-icon");
+  const loginModal = document.getElementById("login-modal");
+  const loginForm = document.getElementById("login-form");
+  const closeModal = document.getElementById("close-modal");
+  const loginMessage = document.getElementById("login-message");
+
+  // Store current authenticated user
+  let currentUser = localStorage.getItem("currentUser");
+
+  // Function to update UI based on authentication status
+  function updateAuthUI() {
+    if (currentUser) {
+      userIcon.textContent = "✓";
+      userIcon.classList.add("logged-in");
+      userIcon.title = `Logged in as ${currentUser} (click to logout)`;
+      signupContainer.classList.remove("hidden");
+    } else {
+      userIcon.textContent = "👤";
+      userIcon.classList.remove("logged-in");
+      userIcon.title = "Login (click to open login)";
+      signupContainer.classList.add("hidden");
+    }
+  }
+
+  // Handle login modal
+  userIcon.addEventListener("click", () => {
+    if (currentUser) {
+      // Logout
+      logout();
+    } else {
+      // Show login modal
+      loginModal.classList.remove("hidden");
+    }
+  });
+
+  closeModal.addEventListener("click", () => {
+    loginModal.classList.add("hidden");
+    loginMessage.classList.add("hidden");
+  });
+
+  loginModal.addEventListener("click", (e) => {
+    if (e.target === loginModal) {
+      loginModal.classList.add("hidden");
+      loginMessage.classList.add("hidden");
+    }
+  });
+
+  // Handle login form submission
+  loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    try {
+      const response = await fetch("/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (response.ok) {
+        currentUser = username;
+        localStorage.setItem("currentUser", username);
+        loginMessage.textContent = "Login successful!";
+        loginMessage.className = "login-message success";
+        loginForm.reset();
+        updateAuthUI();
+        setTimeout(() => {
+          loginModal.classList.add("hidden");
+          loginMessage.classList.add("hidden");
+        }, 1500);
+      } else {
+        loginMessage.textContent = "Invalid username or password";
+        loginMessage.className = "login-message error";
+      }
+      loginMessage.classList.remove("hidden");
+    } catch (error) {
+      loginMessage.textContent = "Login failed. Please try again.";
+      loginMessage.className = "login-message error";
+      loginMessage.classList.remove("hidden");
+      console.error("Login error:", error);
+    }
+  });
+
+  // Handle logout
+  function logout() {
+    const username = currentUser;
+    fetch(`/logout?username=${encodeURIComponent(username)}`, {
+      method: "POST",
+    }).then(() => {
+      localStorage.removeItem("currentUser");
+      currentUser = null;
+      updateAuthUI();
+      messageDiv.textContent = "Logged out successfully";
+      messageDiv.className = "success";
+      messageDiv.classList.remove("hidden");
+      setTimeout(() => {
+        messageDiv.classList.add("hidden");
+      }, 3000);
+    });
+  }
 
   // Function to fetch activities from API
   async function fetchActivities() {
@@ -21,7 +125,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const spotsLeft =
           details.max_participants - details.participants.length;
 
-        // Create participants HTML with delete icons instead of bullet points
+        // Create participants HTML with delete icons (only for logged in users)
         const participantsHTML =
           details.participants.length > 0
             ? `<div class="participants-section">
@@ -30,7 +134,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 ${details.participants
                   .map(
                     (email) =>
-                      `<li><span class="participant-email">${email}</span><button class="delete-btn" data-activity="${name}" data-email="${email}">❌</button></li>`
+                      `<li><span class="participant-email">${email}</span>${
+                        currentUser
+                          ? `<button class="delete-btn" data-activity="${name}" data-email="${email}">❌</button>`
+                          : ""
+                      }</li>`
                   )
                   .join("")}
               </ul>
@@ -73,11 +181,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const activity = button.getAttribute("data-activity");
     const email = button.getAttribute("data-email");
 
+    if (!currentUser) {
+      messageDiv.textContent = "You must be logged in to unregister students";
+      messageDiv.className = "error";
+      messageDiv.classList.remove("hidden");
+      return;
+    }
+
     try {
       const response = await fetch(
         `/activities/${encodeURIComponent(
           activity
-        )}/unregister?email=${encodeURIComponent(email)}`,
+        )}/unregister?email=${encodeURIComponent(email)}&teacher=${encodeURIComponent(currentUser)}`,
         {
           method: "DELETE",
         }
@@ -114,6 +229,13 @@ document.addEventListener("DOMContentLoaded", () => {
   signupForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
+    if (!currentUser) {
+      messageDiv.textContent = "You must be logged in to register students";
+      messageDiv.className = "error";
+      messageDiv.classList.remove("hidden");
+      return;
+    }
+
     const email = document.getElementById("email").value;
     const activity = document.getElementById("activity").value;
 
@@ -121,7 +243,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetch(
         `/activities/${encodeURIComponent(
           activity
-        )}/signup?email=${encodeURIComponent(email)}`,
+        )}/signup?email=${encodeURIComponent(email)}&teacher=${encodeURIComponent(currentUser)}`,
         {
           method: "POST",
         }
@@ -156,5 +278,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Initialize app
+  updateAuthUI();
   fetchActivities();
 });
